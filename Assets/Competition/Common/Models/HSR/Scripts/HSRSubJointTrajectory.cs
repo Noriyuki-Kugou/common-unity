@@ -38,7 +38,12 @@ namespace SIGVerse.ToyotaHSR
 		private Transform handLProximalLink;
 		private Transform handRProximalLink;
 
-		private float armLiftLinkIniPosZ;
+        private Transform baseFootprint;
+        private Transform baseFootprintPosNoise;
+        private Transform baseFootprintRotNoise;
+        private Transform baseFootprintRigidbody;
+
+        private float armLiftLinkIniPosZ;
 		private float torsoLiftLinkIniPosZ;
 
 		private Dictionary<string, TrajectoryInfo> trajectoryInfoMap;
@@ -73,9 +78,18 @@ namespace SIGVerse.ToyotaHSR
 			this.trajectoryInfoMap.Add(HSRCommon.HeadTiltJointName, null);
 			this.trajectoryInfoMap.Add(HSRCommon.HandLProximalJointName, null);
 			this.trajectoryInfoMap.Add(HSRCommon.HandRProximalJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.OmniOdomX_JointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.OmniOdomY_JointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.OmniOdomT_JointName, null);
 
-			this.trajectoryKeyList = new List<string>(trajectoryInfoMap.Keys);
-		}
+
+            this.trajectoryKeyList = new List<string>(trajectoryInfoMap.Keys);
+
+            this.baseFootprint = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.BaseFootPrintName);
+            this.baseFootprintPosNoise = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.BaseFootPrintPosNoiseName);
+            this.baseFootprintRotNoise = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.BaseFootPrintRotNoiseName);
+            this.baseFootprintRigidbody = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.BaseFootPrintRigidbodyName);
+        }
 
 
 		protected override void Start()
@@ -155,7 +169,22 @@ namespace SIGVerse.ToyotaHSR
 				{
 					this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, HSRCommon.GetCorrectedJointsEulerAngle(this.handRProximalLink.localEulerAngles.x, name) * Mathf.Deg2Rad);
 				}
-			}
+
+                if (name == HSRCommon.OmniOdomX_JointName)
+                {
+                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0);
+                }
+
+                if (name == HSRCommon.OmniOdomY_JointName)
+                {
+                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0);
+                }
+
+                if (name == HSRCommon.OmniOdomT_JointName)
+                {
+                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0);
+                }
+            }
 		}
 
 		protected override void Update()
@@ -210,7 +239,7 @@ namespace SIGVerse.ToyotaHSR
 					}
 
 					if (jointName == HSRCommon.HeadTiltJointName)
-					{
+                    {
 						float newPos = HSRCommon.GetCorrectedJointsEulerAngle(GetPositionAndUpdateTrajectory(this.trajectoryInfoMap, jointName, HSRCommon.MinSpeedRad, HSRCommon.MaxSpeedHead) * Mathf.Rad2Deg, jointName);
 
 						this.headTiltLink.localEulerAngles = new Vector3(this.headTiltLink.localEulerAngles.x, newPos, this.headTiltLink.localEulerAngles.z);
@@ -249,12 +278,67 @@ namespace SIGVerse.ToyotaHSR
 							this.handRProximalLink.localEulerAngles = new Vector3(newPos, this.handRProximalLink.localEulerAngles.y, this.handRProximalLink.localEulerAngles.z);
 						}
 					}
-				}
+
+                    if (jointName == HSRCommon.OmniOdomX_JointName)//OdomäÓèÄÇÃà⁄ìÆÇÃUpdateèàóù
+                    {
+                        float linearVelX = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0, HSRCommon.MaxSpeedBase);
+
+                        Vector3 deltaPosition = (-this.baseFootprint.right * linearVelX) * Time.fixedDeltaTime;
+                        Vector3 deltaNoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX)) * Time.fixedDeltaTime;
+                        
+                        this.baseFootprintRigidbody.position += deltaPosition;
+                        this.baseFootprintPosNoise.position += deltaNoisePos;
+                    }
+
+                    if (jointName == HSRCommon.OmniOdomY_JointName)
+                    {
+                        float linearVelY = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0, HSRCommon.MaxSpeedBase);
+
+
+                        Vector3 deltaPosition = (this.baseFootprint.up * linearVelY) * Time.fixedDeltaTime;
+                        Vector3 deltaNoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX) + this.baseFootprint.up * this.GetPosNoise(linearVelY)) * Time.fixedDeltaTime;
+                        
+                        this.baseFootprintRigidbody.position += deltaPosition;
+                        this.baseFootprintPosNoise.position += deltaNoisePos;
+                    }
+
+                    if (jointName == HSRCommon.OmniOdomT_JointName)
+                    {
+                        float angularVelZ = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0, HSRCommon.MaxSpeedBaseRad);
+
+                        Quaternion deltaRotation = Quaternion.Euler(new Vector3(0.0f, 0.0f, -angularVelZ * Mathf.Rad2Deg * Time.fixedDeltaTime));
+                        Quaternion deltaNoiseRot = Quaternion.Euler(new Vector3(0.0f, 0.0f, -this.GetRotNoise(angularVelZ) * Mathf.Rad2Deg * Time.fixedDeltaTime));
+
+                        this.baseFootprintRigidbody.rotation *= deltaRotation;
+                        this.baseFootprintRotNoise.rotation *= deltaNoiseRot;
+                    }
+                }
 			}
 		}
 
 
-		private static float GetPositionAndUpdateTrajectory(Dictionary<string, TrajectoryInfo> trajectoryInfoMap, string jointName, float minSpeed, float maxSpeed)
+        private static float GetOmniSpeed(Dictionary<string, TrajectoryInfo> trajectoryInfoMap, string jointName, float minSpeed, float maxSpeed)
+        {
+            TrajectoryInfo trajectoryInfo = trajectoryInfoMap[jointName];
+
+            int targetPointIndex = 0;
+            // Select current trajectory target point 
+            for (int i = 0; i < trajectoryInfo.Durations.Count; i++)
+            {
+                targetPointIndex = i;
+                if (Time.time - trajectoryInfo.StartTime < trajectoryInfo.Durations[targetPointIndex])
+                {
+                    break;
+                }
+            }
+            
+            float speed = (trajectoryInfo.GoalPositions[targetPointIndex] / trajectoryInfo.Durations[targetPointIndex]);
+
+            return speed;
+        }
+
+
+        private static float GetPositionAndUpdateTrajectory(Dictionary<string, TrajectoryInfo> trajectoryInfoMap, string jointName, float minSpeed, float maxSpeed)
 		{
 			TrajectoryInfo trajectoryInfo = trajectoryInfoMap[jointName];
 
@@ -359,6 +443,20 @@ namespace SIGVerse.ToyotaHSR
 		{
 			this.graspedObject = graspedObject;
 		}
-	}
+
+        private float GetPosNoise(float val)
+        {
+            float randomNumber = SIGVerseUtils.GetRandomNumberFollowingNormalDistribution(0.6f); // sigma=0.6
+
+            return val * Mathf.Clamp(randomNumber, -3.0f, +3.0f); // plus/minus 3.0 is sufficiently large.
+        }
+
+        private float GetRotNoise(float val)
+        {
+            float randomNumber = SIGVerseUtils.GetRandomNumberFollowingNormalDistribution(0.3f); // sigma=0.3
+
+            return val * Mathf.Clamp(randomNumber, -3.0f, +3.0f); // plus/minus 3.0 is sufficiently large.
+        }
+    }
 }
 

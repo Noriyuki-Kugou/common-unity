@@ -50,6 +50,7 @@ namespace SIGVerse.ToyotaHSR
 		public const string HandRFingerTipFrameName     = "hand_r_finger_tip_frame";
 		public const string WristFtSensorFrameName      = "wrist_ft_sensor_frame";
 
+
 		public const string BaseImuFrameName    = "base_imu_frame";
 		public const string BaseRangeSensorLink = "base_range_sensor_link";
 
@@ -99,7 +100,11 @@ namespace SIGVerse.ToyotaHSR
 		public const string HandLSpringProximalJointName = "hand_l_spring_proximal_joint";
 		public const string HandRSpringProximalJointName = "hand_r_spring_proximal_joint";
 
-		public static List<Transform> GetLinksInChildren(Transform root)
+        public const string OmniOdomX_JointName          = "odom_x";
+        public const string OmniOdomY_JointName          = "odom_y";
+        public const string OmniOdomT_JointName          = "odom_t";
+
+        public static List<Transform> GetLinksInChildren(Transform root)
 		{
 			List<Transform> linkList = new List<Transform>();
 

@@ -66,7 +66,8 @@ namespace SIGVerse.ToyotaHSR
 			Vector3 deltaPosition = (-this.baseFootprint.right *                  linearVelX  + this.baseFootprint.up *                  linearVelY ) * Time.fixedDeltaTime;
 			Vector3 deltaNoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX) + this.baseFootprint.up * this.GetPosNoise(linearVelY)) * Time.fixedDeltaTime;
 
-			this.baseFootprintRigidbody.position += deltaPosition;
+
+            this.baseFootprintRigidbody.position += deltaPosition;
 			this.baseFootprintPosNoise .position += deltaNoisePos;
 
 
