@@ -172,17 +172,17 @@ namespace SIGVerse.ToyotaHSR
 
                 if (name == HSRCommon.OmniOdomX_JointName)
                 {
-                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0);
+                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0f);
                 }
 
                 if (name == HSRCommon.OmniOdomY_JointName)
                 {
-                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0);
+                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0f);
                 }
 
                 if (name == HSRCommon.OmniOdomT_JointName)
                 {
-                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0);
+                    this.trajectoryInfoMap[name] = new TrajectoryInfo(Time.time, durations, positions, Time.time, 0.0f);
                 }
             }
 		}
@@ -281,7 +281,7 @@ namespace SIGVerse.ToyotaHSR
 
                     if (jointName == HSRCommon.OmniOdomX_JointName)//OdomäÓèÄÇÃà⁄ìÆÇÃUpdateèàóù
                     {
-                        float linearVelX = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0, HSRCommon.MaxSpeedBase);
+                        float linearVelX = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBase);
 
                         Vector3 deltaPosition = (-this.baseFootprint.right * linearVelX) * Time.fixedDeltaTime;
                         Vector3 deltaNoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX)) * Time.fixedDeltaTime;
@@ -292,11 +292,11 @@ namespace SIGVerse.ToyotaHSR
 
                     if (jointName == HSRCommon.OmniOdomY_JointName)
                     {
-                        float linearVelY = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0, HSRCommon.MaxSpeedBase);
+                        float linearVelY = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBase);
 
 
                         Vector3 deltaPosition = (this.baseFootprint.up * linearVelY) * Time.fixedDeltaTime;
-                        Vector3 deltaNoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX) + this.baseFootprint.up * this.GetPosNoise(linearVelY)) * Time.fixedDeltaTime;
+                        Vector3 deltaNoisePos = (this.baseFootprint.up * this.GetPosNoise(linearVelY)) * Time.fixedDeltaTime;
                         
                         this.baseFootprintRigidbody.position += deltaPosition;
                         this.baseFootprintPosNoise.position += deltaNoisePos;
@@ -304,7 +304,7 @@ namespace SIGVerse.ToyotaHSR
 
                     if (jointName == HSRCommon.OmniOdomT_JointName)
                     {
-                        float angularVelZ = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0, HSRCommon.MaxSpeedBaseRad);
+                        float angularVelZ = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBaseRad);
 
                         Quaternion deltaRotation = Quaternion.Euler(new Vector3(0.0f, 0.0f, -angularVelZ * Mathf.Rad2Deg * Time.fixedDeltaTime));
                         Quaternion deltaNoiseRot = Quaternion.Euler(new Vector3(0.0f, 0.0f, -this.GetRotNoise(angularVelZ) * Mathf.Rad2Deg * Time.fixedDeltaTime));
