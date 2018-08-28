@@ -337,8 +337,8 @@ namespace SIGVerse.ToyotaHSR
                 linearVelY = Mathf.Clamp(linearVelY, 0.0f, HSRCommon.MaxSpeedBase);
             }
                 
-            Position = (-this.baseFootprint.right * linearVelX + this.baseFootprint.up * linearVelY) * Time.fixedDeltaTime;
-            NoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX) + this.baseFootprint.up * this.GetPosNoise(linearVelY)) * Time.fixedDeltaTime;
+            Position = (-this.baseFootprint.right * linearVelX + this.baseFootprint.up * linearVelY) * (Time.time - trajectoryInfo.CurrentTime);
+            NoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX) + this.baseFootprint.up * this.GetPosNoise(linearVelY)) * (Time.time - trajectoryInfo.CurrentTime);
             
 
             if (jointName == HSRCommon.OmniOdomX_JointName)
@@ -386,10 +386,10 @@ namespace SIGVerse.ToyotaHSR
 
             float angularVelZ = (trajectoryInfo.GoalPositions[targetPointIndex] / trajectoryInfo.Durations[targetPointIndex]);
             angularVelZ = Mathf.Sign(angularVelZ) * Mathf.Clamp(Mathf.Abs(angularVelZ), 0.0f, HSRCommon.MaxSpeedBaseRad);
-            float deltaAngularRadZ = -angularVelZ * Time.fixedDeltaTime;
+            float deltaAngularRadZ = -angularVelZ * (Time.time - trajectoryInfo.CurrentTime);
 
-            deltaRotation = Quaternion.Euler(new Vector3(0.0f, 0.0f, -angularVelZ * Mathf.Rad2Deg * Time.fixedDeltaTime));
-            deltaNoiseRot = Quaternion.Euler(new Vector3(0.0f, 0.0f, -this.GetRotNoise(angularVelZ) * Mathf.Rad2Deg * Time.fixedDeltaTime));
+            deltaRotation = Quaternion.Euler(new Vector3(0.0f, 0.0f, -angularVelZ * Mathf.Rad2Deg * (Time.time - trajectoryInfo.CurrentTime)));
+            deltaNoiseRot = Quaternion.Euler(new Vector3(0.0f, 0.0f, -this.GetRotNoise(angularVelZ) * Mathf.Rad2Deg * (Time.time - trajectoryInfo.CurrentTime)));
 
             if (Mathf.Abs(trajectoryInfo.CurrentPosition + deltaAngularRadZ) > Mathf.Abs(trajectoryInfo.GoalPositions[targetPointIndex]))
             {
