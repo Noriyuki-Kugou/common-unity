@@ -108,8 +108,6 @@ namespace SIGVerse.ToyotaHSR
 				return;
 			}
 
-			const int Zero = 0;
-
 			for(int i=0; i < jointTrajectory.joint_names.Count; i++)
 			{
 				string name    = jointTrajectory.joint_names[i];
@@ -281,34 +279,30 @@ namespace SIGVerse.ToyotaHSR
 
                     if (jointName == HSRCommon.OmniOdomX_JointName)//OdomŠî€‚ÌˆÚ“®‚ÌUpdateˆ—
                     {
-                        float linearVelX = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBase);
-
-                        Vector3 deltaPosition = (-this.baseFootprint.right * linearVelX) * Time.fixedDeltaTime;
-                        Vector3 deltaNoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX)) * Time.fixedDeltaTime;
-                        
+                        Vector3 deltaPosition = new Vector3();
+                        Vector3 deltaNoisePos = new Vector3();
+                        this.GetOmniXY_PositionAndUpdateTrajectory(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBase, ref deltaPosition, ref deltaNoisePos);
+                                                
                         this.baseFootprintRigidbody.position += deltaPosition;
                         this.baseFootprintPosNoise.position += deltaNoisePos;
                     }
 
                     if (jointName == HSRCommon.OmniOdomY_JointName)
                     {
-                        float linearVelY = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBase);
+                        Vector3 deltaPosition = new Vector3();
+                        Vector3 deltaNoisePos = new Vector3();
+                        this.GetOmniXY_PositionAndUpdateTrajectory(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBase, ref deltaPosition, ref deltaNoisePos);
 
-
-                        Vector3 deltaPosition = (this.baseFootprint.up * linearVelY) * Time.fixedDeltaTime;
-                        Vector3 deltaNoisePos = (this.baseFootprint.up * this.GetPosNoise(linearVelY)) * Time.fixedDeltaTime;
-                        
                         this.baseFootprintRigidbody.position += deltaPosition;
                         this.baseFootprintPosNoise.position += deltaNoisePos;
                     }
 
                     if (jointName == HSRCommon.OmniOdomT_JointName)
                     {
-                        float angularVelZ = GetOmniSpeed(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBaseRad);
-
-                        Quaternion deltaRotation = Quaternion.Euler(new Vector3(0.0f, 0.0f, -angularVelZ * Mathf.Rad2Deg * Time.fixedDeltaTime));
-                        Quaternion deltaNoiseRot = Quaternion.Euler(new Vector3(0.0f, 0.0f, -this.GetRotNoise(angularVelZ) * Mathf.Rad2Deg * Time.fixedDeltaTime));
-
+                        Quaternion deltaRotation = new Quaternion();
+                        Quaternion deltaNoiseRot = new Quaternion();
+                        this.GetOmniT_RotationAndUpdateTrajectory(this.trajectoryInfoMap, jointName, 0.0f, HSRCommon.MaxSpeedBaseRad, ref deltaRotation, ref deltaNoiseRot);
+                        
                         this.baseFootprintRigidbody.rotation *= deltaRotation;
                         this.baseFootprintRotNoise.rotation *= deltaNoiseRot;
                     }
@@ -317,7 +311,7 @@ namespace SIGVerse.ToyotaHSR
 		}
 
 
-        private static float GetOmniSpeed(Dictionary<string, TrajectoryInfo> trajectoryInfoMap, string jointName, float minSpeed, float maxSpeed)
+        private void GetOmniXY_PositionAndUpdateTrajectory(Dictionary<string, TrajectoryInfo> trajectoryInfoMap, string jointName, float minSpeed, float maxSpeed, ref Vector3 Position, ref Vector3 NoisePos)
         {
             TrajectoryInfo trajectoryInfo = trajectoryInfoMap[jointName];
 
@@ -326,16 +320,89 @@ namespace SIGVerse.ToyotaHSR
             for (int i = 0; i < trajectoryInfo.Durations.Count; i++)
             {
                 targetPointIndex = i;
-                if (Time.time - trajectoryInfo.StartTime < trajectoryInfo.Durations[targetPointIndex])
-                {
-                    break;
-                }
+                if (Time.time - trajectoryInfo.StartTime < trajectoryInfo.Durations[targetPointIndex]){ break; }
             }
             
-            float speed = (trajectoryInfo.GoalPositions[targetPointIndex] / trajectoryInfo.Durations[targetPointIndex]);
+            float linearVelX = 0.0f;
+            float linearVelY = 0.0f;
 
-            return speed;
-        }
+            if (jointName == HSRCommon.OmniOdomX_JointName)
+            {
+                linearVelX = (trajectoryInfo.GoalPositions[targetPointIndex] / trajectoryInfo.Durations[targetPointIndex]);
+                linearVelX = Mathf.Clamp(linearVelX, 0.0f, HSRCommon.MaxSpeedBase);
+            }
+            else if(jointName == HSRCommon.OmniOdomY_JointName)
+            {
+                linearVelY = (trajectoryInfo.GoalPositions[targetPointIndex] / trajectoryInfo.Durations[targetPointIndex]);
+                linearVelY = Mathf.Clamp(linearVelY, 0.0f, HSRCommon.MaxSpeedBase);
+            }
+                
+            Position = (-this.baseFootprint.right * linearVelX + this.baseFootprint.up * linearVelY) * Time.fixedDeltaTime;
+            NoisePos = (-this.baseFootprint.right * this.GetPosNoise(linearVelX) + this.baseFootprint.up * this.GetPosNoise(linearVelY)) * Time.fixedDeltaTime;
+            
+
+            if (jointName == HSRCommon.OmniOdomX_JointName)
+            {
+                if (Mathf.Abs(trajectoryInfo.CurrentPosition + Position.z) > Mathf.Abs(trajectoryInfo.GoalPositions[targetPointIndex]))
+                {
+                    Position.z = trajectoryInfo.GoalPositions[targetPointIndex] - trajectoryInfo.CurrentPosition;
+                    trajectoryInfoMap[jointName] = null;
+                }
+                else
+                {
+                    trajectoryInfo.CurrentTime = Time.time;
+                    trajectoryInfo.CurrentPosition = trajectoryInfo.CurrentPosition + Position.z;
+                }
+            }
+            else if (jointName == HSRCommon.OmniOdomY_JointName)
+            {
+                if (Mathf.Abs(trajectoryInfo.CurrentPosition - Position.x) > Mathf.Abs(trajectoryInfo.GoalPositions[targetPointIndex]))
+                {
+                    Position.x = -(trajectoryInfo.GoalPositions[targetPointIndex] - trajectoryInfo.CurrentPosition);
+                    trajectoryInfoMap[jointName] = null;
+                }
+                else
+                {
+                    trajectoryInfo.CurrentTime = Time.time;
+                    trajectoryInfo.CurrentPosition = trajectoryInfo.CurrentPosition - Position.x;
+                }
+            }
+
+            return;
+        }//GetOmniXY_PositionAndUpdateTrajectory
+
+
+        private void GetOmniT_RotationAndUpdateTrajectory(Dictionary<string, TrajectoryInfo> trajectoryInfoMap, string jointName, float minSpeed, float maxSpeed, ref Quaternion deltaRotation, ref Quaternion deltaNoiseRot)//delta angle‚ð•Ô‚·
+        {
+            TrajectoryInfo trajectoryInfo = trajectoryInfoMap[jointName];
+
+            int targetPointIndex = 0;
+            // Select current trajectory target point 
+            for (int i = 0; i < trajectoryInfo.Durations.Count; i++)
+            {
+                targetPointIndex = i;
+                if (Time.time - trajectoryInfo.StartTime < trajectoryInfo.Durations[targetPointIndex]) { break; }
+            }
+
+            float angularVelZ = (trajectoryInfo.GoalPositions[targetPointIndex] / trajectoryInfo.Durations[targetPointIndex]);
+            angularVelZ = Mathf.Sign(angularVelZ) * Mathf.Clamp(Mathf.Abs(angularVelZ), 0.0f, HSRCommon.MaxSpeedBaseRad);
+            float deltaAngularRadZ = -angularVelZ * Time.fixedDeltaTime;
+
+            deltaRotation = Quaternion.Euler(new Vector3(0.0f, 0.0f, -angularVelZ * Mathf.Rad2Deg * Time.fixedDeltaTime));
+            deltaNoiseRot = Quaternion.Euler(new Vector3(0.0f, 0.0f, -this.GetRotNoise(angularVelZ) * Mathf.Rad2Deg * Time.fixedDeltaTime));
+
+            if (Mathf.Abs(trajectoryInfo.CurrentPosition + deltaAngularRadZ) > Mathf.Abs(trajectoryInfo.GoalPositions[targetPointIndex]))
+            {
+                trajectoryInfoMap[jointName] = null;
+            }
+            else
+            {
+                trajectoryInfo.CurrentTime = Time.time;
+                trajectoryInfo.CurrentPosition = trajectoryInfo.CurrentPosition + deltaAngularRadZ;
+            }
+            
+            return;
+        }//GetOmniT_RotationAndUpdateTrajectory
 
 
         private static float GetPositionAndUpdateTrajectory(Dictionary<string, TrajectoryInfo> trajectoryInfoMap, string jointName, float minSpeed, float maxSpeed)
