@@ -72,7 +72,11 @@ namespace SIGVerse.ToyotaHSR
 			{
 				SIGVerseLogger.Warn("joint_names.Count != points.positions.Count  topicName = "+this.topicName);
 				return;
-			}
+			}else if(jointTrajectory.joint_names.Count != 3)
+            {
+                SIGVerseLogger.Warn("joint_names.Count != 3");
+                return;
+            }
 
             for (int i=0; i < jointTrajectory.joint_names.Count; i++)
 			{
@@ -157,23 +161,21 @@ namespace SIGVerse.ToyotaHSR
         protected override void Update()
 		{
 			base.Update();
-
-            //Debug.Log(this.baseFootprintRigidbody.rotation.eulerAngles.y);
-
+            
             if (this.trajectoryInfoMap[HSRCommon.OmniOdomX_JointName] != null && this.trajectoryInfoMap[HSRCommon.OmniOdomY_JointName] != null && this.trajectoryInfoMap[HSRCommon.OmniOdomT_JointName] != null)
             {
                 Vector3 NewPosition = new Vector3();
                 Vector3 NewNoisePos = new Vector3();
                 this.GetOmniXY_NewPosition(ref this.trajectoryInfoMap, ref NewPosition, ref NewNoisePos);
-                
-                this.baseFootprintRigidbody.position = NewPosition;
-                this.baseFootprintPosNoise.position = NewNoisePos;
+
+                this.baseFootprintRigidbody.position += NewPosition;
+                this.baseFootprintPosNoise.position += NewNoisePos;
 
                 Quaternion newRotation = new Quaternion();
                 Quaternion newNoiseRot = new Quaternion();
                 this.GetOmniT_NewRotation(ref this.trajectoryInfoMap, ref newRotation, ref newNoiseRot);
                 this.baseFootprintRigidbody.rotation = newRotation;
-                this.baseFootprintRotNoise.rotation = newNoiseRot;
+                //this.baseFootprintRotNoise.rotation *= newNoiseRot;
             }
 
         }//Update
@@ -185,9 +187,8 @@ namespace SIGVerse.ToyotaHSR
             TrajectoryInfo trajectoryInfo_y = trajectoryInfoMap[HSRCommon.OmniOdomY_JointName];
 
 
-            int targetPointIndex = 0;
-            // Select current trajectory target point 
-            for (int i = 0; i < trajectoryInfo_x.Durations.Count; i++)
+            int targetPointIndex = 0; 
+            for (int i = 0; i < trajectoryInfo_x.Durations.Count; i++)//trajectryの対象ポイントを探査
             {
                 targetPointIndex = i;
                 if (Time.time - trajectoryInfo_x.StartTime < trajectoryInfo_x.Durations[targetPointIndex]){ break; }
@@ -211,8 +212,7 @@ namespace SIGVerse.ToyotaHSR
 
             if (delta_time > 1)
             {
-                Position = goalPosition;
-                NoisePos = goalPosition;
+                Position = (goalPosition - this.baseFootprintRigidbody.position);
                 if ((targetPointIndex + 1) == trajectoryInfo_x.GoalPositions.Count)
                 {
                     trajectoryInfoMap[HSRCommon.OmniOdomX_JointName] = null;
@@ -220,13 +220,19 @@ namespace SIGVerse.ToyotaHSR
                 }
                 return;
             }
-
+            
             Position = Vector3.Slerp(this.startPosition, goalPosition, delta_time);//calc new position.
-            NoisePos = Vector3.Slerp(this.startPosition, goalPosition, delta_time);//calc new position.
+            Position = (Position - this.baseFootprintRigidbody.position);
+            NoisePos.x = this.GetPosNoise(Position.x);
+            NoisePos.z = this.GetPosNoise(Position.z);
+
             trajectoryInfoMap[HSRCommon.OmniOdomX_JointName].CurrentPosition = Position.z;
             trajectoryInfoMap[HSRCommon.OmniOdomY_JointName].CurrentPosition = Position.x;
             trajectoryInfoMap[HSRCommon.OmniOdomX_JointName].CurrentTime = Time.time;
             trajectoryInfoMap[HSRCommon.OmniOdomY_JointName].CurrentTime = Time.time;
+
+            Debug.Log(Position.x);
+
 
             return;
         }//GetOmniXY_NewPosition
@@ -237,8 +243,7 @@ namespace SIGVerse.ToyotaHSR
             TrajectoryInfo trajectoryInfo = trajectoryInfoMap[HSRCommon.OmniOdomT_JointName];
 
             int targetPointIndex = 0;
-            // Select current trajectory target point 
-            for (int i = 0; i < trajectoryInfo.Durations.Count; i++)
+            for (int i = 0; i < trajectoryInfo.Durations.Count; i++)//trajectryの対象ポイントを探査
             {
                 targetPointIndex = i;
                 if (Time.time - trajectoryInfo.StartTime < trajectoryInfo.Durations[targetPointIndex]) { break; }
@@ -262,8 +267,7 @@ namespace SIGVerse.ToyotaHSR
 
             if (delta_time > 1)
             {
-                Rotation = goalRotation;
-                NoiseRot = goalRotation;
+                Rotation = this.baseFootprintRigidbody.rotation;
                 if ((targetPointIndex + 1) == trajectoryInfoMap[HSRCommon.OmniOdomT_JointName].GoalPositions.Count)
                 {
                     trajectoryInfoMap[HSRCommon.OmniOdomT_JointName] = null;
@@ -272,7 +276,6 @@ namespace SIGVerse.ToyotaHSR
             }
 
             Rotation = Quaternion.Slerp(this.startRotation, goalRotation, delta_time);//calc new rotation.
-            NoiseRot = Quaternion.Slerp(this.startRotation, goalRotation, delta_time);//calc new rotation.
 
             trajectoryInfoMap[HSRCommon.OmniOdomT_JointName].CurrentTime = Time.time;
             trajectoryInfoMap[HSRCommon.OmniOdomT_JointName].CurrentPosition = Rotation.eulerAngles.z;
