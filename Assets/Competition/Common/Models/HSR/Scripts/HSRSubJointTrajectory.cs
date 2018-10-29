@@ -27,68 +27,55 @@ namespace SIGVerse.ToyotaHSR
 			}
 		}
 
-		private Transform armLiftLink;
-		private Transform armFlexLink;
-		private Transform armRollLink;
-		private Transform wristFlexLink;
-		private Transform wristRollLink;
-		private Transform headPanLink;
-		private Transform headTiltLink;
-		private Transform torsoLiftLink;
-		private Transform handLProximalLink;
-		private Transform handRProximalLink;
-
-        private Transform baseFootprint;
-        private Transform baseFootprintPosNoise;
-        private Transform baseFootprintRotNoise;
-        private Transform baseFootprintRigidbody;
+        private Transform armLiftLink;
+        private Transform armFlexLink;
+        private Transform armRollLink;
+        private Transform wristFlexLink;
+        private Transform wristRollLink;
+        private Transform headPanLink;
+        private Transform headTiltLink;
+        private Transform torsoLiftLink;
+        private Transform handLProximalLink;
+        private Transform handRProximalLink;
 
         private float armLiftLinkIniPosZ;
-		private float torsoLiftLinkIniPosZ;
+        private float torsoLiftLinkIniPosZ;
 
-		private Dictionary<string, TrajectoryInfo> trajectoryInfoMap;
-		private List<string> trajectoryKeyList;
+        private Dictionary<string, TrajectoryInfo> trajectoryInfoMap;
+        private List<string> trajectoryKeyList;
 
-		private GameObject graspedObject;
+        private GameObject graspedObject;
 
 
 		void Awake()
 		{
-			this.armLiftLink       = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.ArmLiftLinkName );
-			this.armFlexLink       = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.ArmFlexLinkName );
-			this.armRollLink       = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.ArmRollLinkName );
-			this.wristFlexLink     = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.WristFlexLinkName );
-			this.wristRollLink     = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.WristRollLinkName );
-			this.headPanLink       = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.HeadPanLinkName );
-			this.headTiltLink      = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.HeadTiltLinkName );
-			this.torsoLiftLink     = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.TorsoLiftLinkName );
-			this.handLProximalLink = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.HandLProximalLinkName );
-			this.handRProximalLink = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.HandRProximalLinkName );
+            this.armLiftLink       = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.ArmLiftLinkName );
+            this.armFlexLink       = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.ArmFlexLinkName );
+            this.armRollLink       = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.ArmRollLinkName );
+            this.wristFlexLink     = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.WristFlexLinkName );
+            this.wristRollLink     = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.WristRollLinkName );
+            this.headPanLink       = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.HeadPanLinkName );
+            this.headTiltLink      = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.HeadTiltLinkName );
+            this.torsoLiftLink     = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.TorsoLiftLinkName );
+            this.handLProximalLink = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.HandLProximalLinkName );
+            this.handRProximalLink = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.HandRProximalLinkName );
 
-			this.armLiftLinkIniPosZ   = this.armLiftLink.localPosition.z;
-			this.torsoLiftLinkIniPosZ = this.torsoLiftLink.localPosition.z;
+            this.armLiftLinkIniPosZ   = this.armLiftLink.localPosition.z;
+            this.torsoLiftLinkIniPosZ = this.torsoLiftLink.localPosition.z;
 
-			this.trajectoryInfoMap = new Dictionary<string, TrajectoryInfo>();
-			this.trajectoryInfoMap.Add(HSRCommon.ArmLiftJointName, null);
-			this.trajectoryInfoMap.Add(HSRCommon.ArmFlexJointName, null);
-			this.trajectoryInfoMap.Add(HSRCommon.ArmRollJointName, null);
-			this.trajectoryInfoMap.Add(HSRCommon.WristFlexJointName, null);
-			this.trajectoryInfoMap.Add(HSRCommon.WristRollJointName, null);
-			this.trajectoryInfoMap.Add(HSRCommon.HeadPanJointName, null);
-			this.trajectoryInfoMap.Add(HSRCommon.HeadTiltJointName, null);
-			this.trajectoryInfoMap.Add(HSRCommon.HandLProximalJointName, null);
-			this.trajectoryInfoMap.Add(HSRCommon.HandRProximalJointName, null);
-            this.trajectoryInfoMap.Add(HSRCommon.OmniOdomX_JointName, null);
-            this.trajectoryInfoMap.Add(HSRCommon.OmniOdomY_JointName, null);
-            this.trajectoryInfoMap.Add(HSRCommon.OmniOdomT_JointName, null);
+            this.trajectoryInfoMap = new Dictionary<string, TrajectoryInfo>();
+            this.trajectoryInfoMap.Add(HSRCommon.ArmLiftJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.ArmFlexJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.ArmRollJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.WristFlexJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.WristRollJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.HeadPanJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.HeadTiltJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.HandLProximalJointName, null);
+            this.trajectoryInfoMap.Add(HSRCommon.HandRProximalJointName, null);
 
 
             this.trajectoryKeyList = new List<string>(trajectoryInfoMap.Keys);
-
-            this.baseFootprint = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.BaseFootPrintName);
-            this.baseFootprintPosNoise = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.BaseFootPrintPosNoiseName);
-            this.baseFootprintRotNoise = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.BaseFootPrintRotNoiseName);
-            this.baseFootprintRigidbody = SIGVerseUtils.FindTransformFromChild(this.transform.root, HSRCommon.BaseFootPrintRigidbodyName);
         }
 
 
@@ -371,20 +358,6 @@ namespace SIGVerse.ToyotaHSR
 		{
 			this.graspedObject = graspedObject;
 		}
-
-        private float GetPosNoise(float val)
-        {
-            float randomNumber = SIGVerseUtils.GetRandomNumberFollowingNormalDistribution(0.6f); // sigma=0.6
-
-            return val * Mathf.Clamp(randomNumber, -3.0f, +3.0f); // plus/minus 3.0 is sufficiently large.
-        }
-
-        private float GetRotNoise(float val)
-        {
-            float randomNumber = SIGVerseUtils.GetRandomNumberFollowingNormalDistribution(0.3f); // sigma=0.3
-
-            return val * Mathf.Clamp(randomNumber, -3.0f, +3.0f); // plus/minus 3.0 is sufficiently large.
-        }
     }
 }
 
